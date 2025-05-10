@@ -5,6 +5,14 @@ import { Logger } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
+import crypto from 'crypto';
+
+if (typeof (globalThis as any).crypto === 'undefined') {
+  (globalThis as any).crypto = {
+    randomUUID: crypto.randomUUID,
+  };
+}
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
