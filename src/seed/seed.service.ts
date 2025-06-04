@@ -28,6 +28,7 @@ export class SeedService implements OnModuleInit {
     await this.createPermissions();
     await this.createRoles();
     await this.createAdminUser();
+    await this.createBulkUsers();
   }
 
   private async createPermissions() {
@@ -40,6 +41,12 @@ export class SeedService implements OnModuleInit {
       { name: 'read_store', description: 'Can read stores' },
       { name: 'update_store', description: 'Can update stores' },
       { name: 'delete_store', description: 'Can delete stores' },
+      { name: 'create_event', description: 'Can create events' },
+      { name: 'read_event', description: 'Can read events' },
+      { name: 'update_event', description: 'Can update events' },
+      { name: 'delete_event', description: 'Can delete events' },
+      { name: 'view_dashboard', description: 'Can view admin dashboard' },
+      { name: 'manage_settings', description: 'Can manage system settings' },
     ];
 
     for (const permissionData of permissionsToCreate) {
@@ -63,17 +70,35 @@ export class SeedService implements OnModuleInit {
         permissions: [
           'create_user', 'read_user', 'update_user', 'delete_user',
           'create_store', 'read_store', 'update_store', 'delete_store',
+          'create_event', 'read_event', 'update_event', 'delete_event',
+          'view_dashboard', 'manage_settings'
         ]
       },
       {
-        name: 'STORE_MANAGER',
-        description: 'Store manager with limited access',
-        permissions: ['read_store', 'update_store']
+        name: 'COLABORADOR',
+        description: 'Shopping center employee with moderate access',
+        permissions: [
+          'read_user', 'read_store', 'update_store',
+          'create_event', 'read_event', 'update_event',
+          'view_dashboard'
+        ]
+      },
+      {
+        name: 'CLIENTE_INTERNO',
+        description: 'Internal customer (store owner/manager)',
+        permissions: [
+          'read_store', 'update_store', 'read_event'
+        ]
+      },
+      {
+        name: 'CLIENTE_EXTERNO',
+        description: 'External customer (visitor)',
+        permissions: ['read_store', 'read_event']
       },
       {
         name: 'USER',
         description: 'Regular user with minimal access',
-        permissions: ['read_store']
+        permissions: ['read_store', 'read_event']
       }
     ];
 
@@ -131,5 +156,96 @@ export class SeedService implements OnModuleInit {
       await this.userRepository.save(adminUser);
       this.logger.log('Admin user created successfully.');
     }
+  }
+
+  private async createBulkUsers() {
+    // Obtener los roles necesarios
+    const colaboradorRole = await this.roleRepository.findOne({ where: { name: 'COLABORADOR' } });
+    const clienteInternoRole = await this.roleRepository.findOne({ where: { name: 'CLIENTE_INTERNO' } });
+    const clienteExternoRole = await this.roleRepository.findOne({ where: { name: 'CLIENTE_EXTERNO' } });
+
+    if (!colaboradorRole || !clienteInternoRole || !clienteExternoRole) {
+      this.logger.error('Some required roles not found. Cannot create bulk users.');
+      return;
+    }
+
+    // Crear 75 colaboradores
+    await this.createUsersWithRole('colaborador', colaboradorRole, 75);
+    
+    // Crear 75 clientes internos
+    await this.createUsersWithRole('cliente.interno', clienteInternoRole, 75);
+    
+    // Crear algunos clientes externos como ejemplo
+    await this.createUsersWithRole('cliente.externo', clienteExternoRole, 25);
+
+    this.logger.log('Bulk users creation completed.');
+  }
+
+  private async createUsersWithRole(userType: string, role: Role, count: number) {
+    const users = [];
+    
+    for (let i = 1; i <= count; i++) {
+      const email = `${userType}${i}@elitecc.com`;
+      
+      // Verificar si el usuario ya existe
+      const existingUser = await this.userRepository.findOne({
+        where: { email }
+      });
+
+      if (!existingUser) {
+        const user = this.userRepository.create({
+          firstName: this.getFirstName(userType, i),
+          lastName: this.getLastName(userType, i),
+          email: email,
+          password: await bcrypt.hash('Elite123', 10),
+          phone: this.generatePhone(i),
+          roles: [role]
+        });
+
+        users.push(user);
+      }
+    }
+
+    if (users.length > 0) {
+      await this.userRepository.save(users);
+      this.logger.log(`Created ${users.length} users with role: ${role.name}`);
+    }
+  }
+
+  private getFirstName(userType: string, index: number): string {
+    const firstNames = [
+      'Ana', 'Carlos', 'María', 'José', 'Laura', 'Diego', 'Sofía', 'Miguel',
+      'Carmen', 'David', 'Isabel', 'Roberto', 'Lucía', 'Andrés', 'Patricia',
+      'Fernando', 'Elena', 'Ricardo', 'Mónica', 'Alejandro', 'Natalia', 'Javier',
+      'Paola', 'Manuel', 'Sandra', 'Sergio', 'Adriana', 'Francisco', 'Valeria',
+      'Héctor', 'Camila', 'Raúl', 'Daniela', 'Óscar', 'Andrea', 'Arturo',
+      'Cristina', 'Guillermo', 'Beatriz', 'Emilio', 'Verónica', 'Ramón',
+      'Claudia', 'Enrique', 'Gloria', 'Ignacio', 'Rosa', 'Joaquín', 'Pilar'
+    ];
+    
+    const nameIndex = (index - 1) % firstNames.length;
+    return firstNames[nameIndex];
+  }
+
+  private getLastName(userType: string, index: number): string {
+    const lastNames = [
+      'García', 'Rodríguez', 'González', 'Fernández', 'López', 'Martínez',
+      'Sánchez', 'Pérez', 'Gómez', 'Martín', 'Jiménez', 'Ruiz', 'Hernández',
+      'Díaz', 'Moreno', 'Muñoz', 'Álvarez', 'Romero', 'Alonso', 'Gutiérrez',
+      'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Ramírez',
+      'Serrano', 'Blanco', 'Suárez', 'Molina', 'Morales', 'Ortega', 'Delgado',
+      'Castro', 'Ortiz', 'Rubio', 'Marín', 'Sanz', 'Iglesias', 'Medina',
+      'Garrido', 'Cortés', 'Castillo', 'Santos', 'Lozano', 'Guerrero', 'Cano'
+    ];
+    
+    const surnameIndex = (index - 1) % lastNames.length;
+    return lastNames[surnameIndex];
+  }
+
+  private generatePhone(index: number): string {
+    // Generar números de teléfono que empiecen con 300, 301, 302, etc.
+    const prefix = 300 + (index % 10);
+    const suffix = String(1000000 + index).substring(1); // 7 dígitos
+    return `${prefix}${suffix}`;
   }
 }
