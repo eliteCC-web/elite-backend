@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+// src/store/entities/store.entity.ts - ACTUALIZACIÓN para incluir relación con User
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { User } from '../../user/entities/user.entity';
 
 @Entity('stores')
 export class Store {
@@ -19,6 +21,25 @@ export class Store {
 
   @Column({ nullable: true })
   imageUrl: string;
+
+  @Column({ nullable: true })
+  category: string;
+
+  @Column({ nullable: true })
+  floor: string;
+
+  @Column('decimal', { precision: 8, scale: 2, nullable: true })
+  monthlyRent: number;
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  @OneToOne(() => User, (user) => user.ownedStore, { nullable: true })
+  @JoinColumn()
+  owner: User;
+
+  @Column({ nullable: true })
+  ownerId: number;
 
   @CreateDateColumn()
   createdAt: Date;

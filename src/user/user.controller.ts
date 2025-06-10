@@ -13,31 +13,31 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO')
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }
 
   @Get()
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO')
   findAll() {
     return this.userService.findAll();
   }
 
   @Get(':id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(+id);
   }
 
   @Put(':id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(+id, updateUserDto);
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO')
   remove(@Param('id') id: string) {
     return this.userService.remove(+id);
   }

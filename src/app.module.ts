@@ -1,9 +1,9 @@
+// src/app.module.ts - ACTUALIZACIÓN
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import * as crypto from 'crypto';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
@@ -11,7 +11,9 @@ import { RoleModule } from './role/role.module';
 import { PermissionModule } from './permission/permission.module';
 import { AuthModule } from './auth/auth.module';
 import { StoreModule } from './store/store.module';
+import { EventModule } from './event/event.module'; // NUEVO
 import { SeedModule } from './seed/seed.module';
+import { ScheduleModule } from './schedule/schedule.module';
 
 @Module({
   imports: [
@@ -22,13 +24,12 @@ import { SeedModule } from './seed/seed.module';
     }),
     
     // Base de datos
-    // Conexión a la base de datos
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        url: configService.get<string>('DATABASE_URL'), // Obtén el connection string
+        url: configService.get<string>('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: true, // En producción, cámbialo a false
         logging: true,
@@ -36,11 +37,13 @@ import { SeedModule } from './seed/seed.module';
     }),
     
     // Módulos de la aplicación
-    AuthModule, // Importante que este módulo vaya primero
+    AuthModule,
     UserModule,
     RoleModule,
     PermissionModule,
     StoreModule,
+    EventModule, // NUEVO
+    ScheduleModule,
     SeedModule
   ],
   controllers: [AppController],
@@ -48,7 +51,7 @@ import { SeedModule } from './seed/seed.module';
     AppService,
     {
       provide: APP_GUARD,
-      useClass: JwtAuthGuard, // Guardia global de JWT
+      useClass: JwtAuthGuard,
     },
   ],
 })

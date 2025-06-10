@@ -1,5 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+// src/user/entities/user.entity.ts - ACTUALIZACIÓN para incluir relación con Store y Schedule
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, OneToOne, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Role } from '../../role/entities/role.entity';
+import { Event } from '../../event/entities/event.entity';
+import { Schedule } from '../../schedule/entities/schedule.entity';
+import { Store } from '../../store/entities/store.entity';
 
 @Entity('users')
 export class User {
@@ -21,6 +25,9 @@ export class User {
   @Column()
   phone: string;
 
+  @Column({ nullable: true })
+  profileImage: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -34,6 +41,15 @@ export class User {
     inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' }
   })
   roles: Role[];
+
+  @ManyToMany(() => Event, (event) => event.registeredUsers)
+  registeredEvents: Event[];
+
+  @OneToMany(() => Schedule, (schedule) => schedule.user)
+  schedules: Schedule[];
+
+  @OneToOne(() => Store, (store) => store.owner, { nullable: true })
+  ownedStore: Store;
 
   // Método para obtener el nombre completo
   get fullName(): string {
