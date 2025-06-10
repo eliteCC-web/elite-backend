@@ -6,6 +6,9 @@ import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import * as crypto from 'crypto';
 
+// 👉 Solución para hacer 'crypto' global y evitar el error ReferenceError: crypto is not defined
+(global as any).crypto = crypto;
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
