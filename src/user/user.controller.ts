@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Req } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -6,11 +6,24 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { Request } from 'express';
+
+// Extender el tipo Request para incluir la propiedad user
+interface RequestWithUser extends Request {
+  user?: any;
+}
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@Req() req: RequestWithUser) {
+    const userId = req.user?.id;
+    return this.userService.findOne(userId);
+  }
 
   @Post()
   @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO')

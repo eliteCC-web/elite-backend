@@ -1,13 +1,13 @@
 // src/schedule/schedule.controller.ts
-import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
-import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { CreateScheduleDto, BulkCreateScheduleDto, AssignRandomShiftsDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
-@Controller('schedules')
+@Controller('schedule')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ScheduleController {
   constructor(private readonly scheduleService: ScheduleService) {}
@@ -20,32 +20,47 @@ export class ScheduleController {
 
   @Post('bulk')
   @Roles('ADMIN')
-  bulkCreate(@Body() schedules: CreateScheduleDto[]) {
-    return this.scheduleService.bulkCreate(schedules);
+  bulkCreate(@Body() bulkCreateDto: BulkCreateScheduleDto) {
+    return this.scheduleService.bulkCreate(bulkCreateDto);
   }
 
-  @Get('user/:userId')
-  @Roles('ADMIN', 'COLABORADOR')
-  findByUser(@Param('userId') userId: string) {
-    return this.scheduleService.findByUser(+userId);
+  @Post('assign-random')
+  @Roles('ADMIN')
+  assignRandomShifts(@Body() assignDto: AssignRandomShiftsDto, @Request() req) {
+    return this.scheduleService.assignRandomShifts(assignDto, req.user.id);
   }
 
-  @Get('user/:userId/three-weeks')
-  @Roles('ADMIN', 'COLABORADOR')
-  getThreeWeeksSchedule(@Param('userId') userId: string) {
-    return this.scheduleService.getThreeWeeksSchedule(+userId);
+  @Get('my-schedule')
+  @Roles('COLABORADOR')
+  findMySchedule(@Request() req) {
+    return this.scheduleService.findByUser(req.user.id);
   }
 
-  @Get('user/:userId/week')
-  @Roles('ADMIN', 'COLABORADOR')
-  findByWeek(
-    @Param('userId') userId: string,
-    @Query('weekStart') weekStart: string
-  ) {
-    return this.scheduleService.findByWeek(+userId, new Date(weekStart));
+  @Get('my-schedule/three-weeks')
+  @Roles('COLABORADOR')
+  getMyThreeWeeksSchedule(@Request() req) {
+    return this.scheduleService.getThreeWeeksSchedule(req.user.id);
   }
 
-  @Put(':id')
+  @Get('user/:id')
+  @Roles('ADMIN')
+  findByUser(@Param('id') id: string) {
+    return this.scheduleService.findByUser(+id);
+  }
+
+  @Get('colaboradores')
+  @Roles('ADMIN')
+  getColaboradores() {
+    return this.scheduleService.getColaboradores();
+  }
+
+  @Get('weekly')
+  @Roles('ADMIN')
+  getWeeklySchedule(@Query('weekStart') weekStart: string) {
+    return this.scheduleService.getWeeklySchedule(new Date(weekStart));
+  }
+
+  @Patch(':id')
   @Roles('ADMIN')
   update(@Param('id') id: string, @Body() updateScheduleDto: UpdateScheduleDto) {
     return this.scheduleService.update(+id, updateScheduleDto);

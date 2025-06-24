@@ -150,7 +150,9 @@ export class SeedService implements OnModuleInit {
         email: adminEmail,
         password: await bcrypt.hash('Admin123', 10),
         phone: '1234567890',
-        roles: [adminRole]
+        roles: [adminRole],
+        emailVerified: true,
+        emailVerifiedAt: new Date()
       });
 
       await this.userRepository.save(adminUser);
@@ -199,7 +201,9 @@ export class SeedService implements OnModuleInit {
           email: email,
           password: await bcrypt.hash('Elite123', 10),
           phone: this.generatePhone(i),
-          roles: [role]
+          roles: [role],
+          emailVerified: true,
+          emailVerifiedAt: new Date()
         });
 
         users.push(user);

@@ -11,11 +11,13 @@ import { RolesGuard } from './guards/roles.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
 import { Role } from '../role/entities/role.entity';
+import { EmailVerificationModule } from '../email-verification/email-verification.module';
 
 @Global()
 @Module({
   imports: [
     forwardRef(() => UserModule),
+    EmailVerificationModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

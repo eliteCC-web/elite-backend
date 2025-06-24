@@ -28,6 +28,22 @@ export class Schedule {
   @Column({ nullable: true })
   notes: string;
 
+  @Column({ 
+    type: 'enum', 
+    enum: ['MORNING', 'AFTERNOON', 'NIGHT', 'FULL_DAY'],
+    default: 'FULL_DAY'
+  })
+  shiftType: string;
+
+  @Column({ nullable: true })
+  position: string; // Cargo o posición del colaborador
+
+  @Column({ default: false })
+  isAssigned: boolean; // Si el turno fue asignado automáticamente
+
+  @Column({ nullable: true })
+  assignedBy: number; // ID del admin que asignó el turno
+
   @CreateDateColumn()
   createdAt: Date;
 

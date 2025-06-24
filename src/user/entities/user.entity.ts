@@ -4,6 +4,7 @@ import { Role } from '../../role/entities/role.entity';
 import { Event } from '../../event/entities/event.entity';
 import { Schedule } from '../../schedule/entities/schedule.entity';
 import { Store } from '../../store/entities/store.entity';
+import { EmailVerification } from '../../email-verification/entities/email-verification.entity';
 
 @Entity('users')
 export class User {
@@ -28,6 +29,13 @@ export class User {
   @Column({ nullable: true })
   profileImage: string;
 
+  // Campos para verificación de email
+  @Column({ default: false })
+  emailVerified: boolean;
+
+  @Column({ nullable: true })
+  emailVerifiedAt: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -50,6 +58,10 @@ export class User {
 
   @OneToOne(() => Store, (store) => store.owner, { nullable: true })
   ownedStore: Store;
+
+  // Relación con verificaciones de email
+  @OneToMany(() => EmailVerification, (verification) => verification.user)
+  emailVerifications: EmailVerification[];
 
   // Método para obtener el nombre completo
   get fullName(): string {

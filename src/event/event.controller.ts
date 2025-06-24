@@ -64,13 +64,13 @@ export class EventController {
   }
 
   @Post('register')
-  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO', 'USER')
+  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO')
   registerUser(@Body() registerEventDto: RegisterEventDto) {
     return this.eventService.registerUser(registerEventDto);
   }
 
   @Delete(':eventId/unregister/:userId')
-  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO', 'USER')
+  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO')
   unregisterUser(@Param('eventId') eventId: string, @Param('userId') userId: string) {
     return this.eventService.unregisterUser(+eventId, +userId);
   }

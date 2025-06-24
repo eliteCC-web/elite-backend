@@ -14,6 +14,7 @@ import { StoreModule } from './store/store.module';
 import { EventModule } from './event/event.module'; // NUEVO
 import { SeedModule } from './seed/seed.module';
 import { ScheduleModule } from './schedule/schedule.module';
+import { EmailVerificationModule } from './email-verification/email-verification.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ScheduleModule } from './schedule/schedule.module';
     StoreModule,
     EventModule, // NUEVO
     ScheduleModule,
+    EmailVerificationModule,
     SeedModule
   ],
   controllers: [AppController],

@@ -1,28 +1,59 @@
 // src/schedule/dto/create-schedule.dto.ts
-import { IsNotEmpty, IsDateString, IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsDateString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
 
 export class CreateScheduleDto {
-  @IsNumber()
   @IsNotEmpty()
+  @IsNumber()
   userId: number;
 
-  @IsDateString()
   @IsNotEmpty()
+  @IsDateString()
   date: string;
 
-  @IsString()
   @IsNotEmpty()
-  startTime: string;
-
   @IsString()
-  @IsNotEmpty()
-  endTime: string;
+  startTime: string; // "08:00"
 
-  @IsBoolean()
+  @IsNotEmpty()
+  @IsString()
+  endTime: string; // "17:00"
+
   @IsOptional()
+  @IsBoolean()
   isHoliday?: boolean;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  shiftType?: 'MORNING' | 'AFTERNOON' | 'NIGHT' | 'FULL_DAY';
+
+  @IsOptional()
+  @IsString()
+  position?: string; // Cargo o posición del colaborador
+}
+
+export class BulkCreateScheduleDto {
+  @IsNotEmpty()
+  @IsDateString()
+  weekStartDate: string;
+
+  @IsNotEmpty()
+  schedules: CreateScheduleDto[];
+}
+
+export class AssignRandomShiftsDto {
+  @IsNotEmpty()
+  @IsDateString()
+  weekStartDate: string;
+
+  @IsNotEmpty()
+  @IsNumber({}, { each: true })
+  userIds: number[];
+
+  @IsOptional()
+  @IsString()
+  shiftPattern?: 'ROTATING' | 'FIXED' | 'CUSTOM';
 }
