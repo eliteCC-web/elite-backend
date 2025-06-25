@@ -29,6 +29,14 @@ export class User {
   @Column({ nullable: true })
   profileImage: string;
 
+  // Campo para estado de aprobación de usuarios internos
+  @Column({ default: 'ACTIVE' })
+  status: string;
+
+  // Información del store para CLIENTE_INTERNO
+  @Column({ type: 'jsonb', nullable: true })
+  storeInfo: any;
+
   // Campos para verificación de email
   @Column({ default: false })
   emailVerified: boolean;

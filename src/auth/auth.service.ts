@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterInternalDto } from './dto/register-internal.dto';
 import { User } from '../user/entities/user.entity';
 import { Role } from '../role/entities/role.entity';
 import { UserService } from '../user/user.service';
@@ -51,6 +52,15 @@ export class AuthService {
       // Verificar que el email esté verificado
       if (!user.emailVerified) {
         throw new UnauthorizedException('Please verify your email address before logging in. Check your inbox for the verification email.');
+      }
+
+      // Verificar que el usuario esté aprobado (para usuarios internos)
+      if (user.status === 'PENDING') {
+        throw new UnauthorizedException('Your account is pending approval by an administrator. You will be notified when your account is approved.');
+      }
+
+      if (user.status === 'SUSPENDED') {
+        throw new UnauthorizedException('Your account has been suspended. Please contact support for assistance.');
       }
       
       // Generar token JWT
@@ -184,5 +194,293 @@ export class AuthService {
 
   async validateUser(payload: any) {
     return this.userService.findOne(payload.id);
+  }
+
+  async getPendingRegistrations() {
+    try {
+      const pendingUsers = await this.userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.roles', 'role')
+        .where('user.status = :status', { status: 'PENDING' })
+        .orderBy('user.createdAt', 'DESC')
+        .getMany();
+
+      return {
+        success: true,
+        data: pendingUsers.map(user => ({
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
+          roleType: user.roles[0]?.name || 'UNKNOWN',
+          storeInfo: user.storeInfo
+        }))
+      };
+    } catch (error) {
+      this.logger.error('Error getting pending registrations:', error);
+      return {
+        success: false,
+        error: 'Failed to get pending registrations'
+      };
+    }
+  }
+
+  async getRegistrationHistory() {
+    try {
+      const processedUsers = await this.userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.roles', 'role')
+        .where('user.status IN (:...statuses)', { statuses: ['ACTIVE', 'REJECTED'] })
+        .orderBy('user.updatedAt', 'DESC')
+        .getMany();
+
+      return {
+        success: true,
+        data: processedUsers.map(user => ({
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          status: user.status,
+          roleType: user.roles[0]?.name || 'UNKNOWN',
+          storeInfo: user.storeInfo
+        }))
+      };
+    } catch (error) {
+      this.logger.error('Error getting registration history:', error);
+      return {
+        success: false,
+        error: 'Failed to get registration history'
+      };
+    }
+  }
+
+  async approveRegistration(userId: number) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found'
+        };
+      }
+
+      if (user.status !== 'PENDING') {
+        return {
+          success: false,
+          error: 'User is not pending approval'
+        };
+      }
+
+      // Cambiar estado a ACTIVE
+      user.status = 'ACTIVE';
+      await this.userRepository.save(user);
+
+      // Enviar email de notificación de aprobación
+      try {
+        await this.emailVerificationService.sendApprovalEmail(user.email, user.firstName);
+        this.logger.log(`Approval email sent to ${user.email}`);
+      } catch (emailError) {
+        this.logger.error('Error sending approval email:', emailError);
+        // No fallar la aprobación si el email no se puede enviar
+      }
+
+      this.logger.log(`User ${user.email} approved by administrator`);
+
+      return {
+        success: true,
+        message: 'User approved successfully'
+      };
+    } catch (error) {
+      this.logger.error('Error approving registration:', error);
+      return {
+        success: false,
+        error: 'Failed to approve registration'
+      };
+    }
+  }
+
+  async rejectRegistration(userId: number, reason: string) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found'
+        };
+      }
+
+      if (user.status !== 'PENDING') {
+        return {
+          success: false,
+          error: 'User is not pending approval'
+        };
+      }
+
+      // Cambiar estado a REJECTED
+      user.status = 'REJECTED';
+      await this.userRepository.save(user);
+
+      // Enviar email de notificación de rechazo
+      try {
+        await this.emailVerificationService.sendRejectionEmail(user.email, user.firstName, reason);
+        this.logger.log(`Rejection email sent to ${user.email}`);
+      } catch (emailError) {
+        this.logger.error('Error sending rejection email:', emailError);
+        // No fallar el rechazo si el email no se puede enviar
+      }
+
+      this.logger.log(`User ${user.email} rejected by administrator. Reason: ${reason}`);
+
+      return {
+        success: true,
+        message: 'User rejected successfully'
+      };
+    } catch (error) {
+      this.logger.error('Error rejecting registration:', error);
+      return {
+        success: false,
+        error: 'Failed to reject registration'
+      };
+    }
+  }
+
+  async testEmailConfiguration(email: string, name: string) {
+    try {
+      this.logger.log(`Testing email configuration for: ${email}`);
+      
+      // Verificar variables de entorno
+      const brevoApiKey = process.env.BREVO_API;
+      const frontendUrl = process.env.FRONTEND_URL;
+      
+      this.logger.log(`BREVO_API configured: ${!!brevoApiKey}`);
+      this.logger.log(`FRONTEND_URL: ${frontendUrl || 'http://localhost:3000'}`);
+      
+      if (!brevoApiKey) {
+        return {
+          success: false,
+          error: 'BREVO_API environment variable is not set',
+          config: {
+            brevoApiKey: !!brevoApiKey,
+            frontendUrl
+          }
+        };
+      }
+
+      // Intentar enviar un email de prueba
+      await this.emailVerificationService.sendVerificationEmail(999, email);
+      
+      return {
+        success: true,
+        message: 'Test email sent successfully',
+        config: {
+          brevoApiKey: !!brevoApiKey,
+          frontendUrl
+        }
+      };
+    } catch (error) {
+      this.logger.error('Test email failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        details: error.response?.data || error.stack
+      };
+    }
+  }
+
+  async registerInternal(registerInternalDto: RegisterInternalDto) {
+    const { store, ...userData } = registerInternalDto;
+    
+    try {
+      // Verificar si el usuario ya existe
+      const existingUser = await this.userRepository.findOne({
+        where: { email: userData.email }
+      });
+
+      if (existingUser) {
+        throw new ConflictException('User with this email already exists');
+      }
+
+      // Buscar el rol correspondiente
+      const role = await this.roleRepository.findOne({ 
+        where: { name: userData.roleType } 
+      });
+
+      if (!role) {
+        throw new Error(`Role ${userData.roleType} not found`);
+      }
+
+      // Crear el usuario con estado pendiente
+      const newUser = this.userRepository.create({
+        ...userData,
+        password: await bcrypt.hash(userData.password, 10),
+        roles: [role],
+        emailVerified: false,
+        status: 'PENDING' // Estado pendiente de aprobación
+      });
+
+      const savedUser = await this.userRepository.save(newUser);
+
+      // Si es CLIENTE_INTERNO, crear el store
+      if (userData.roleType === 'CLIENTE_INTERNO' && store) {
+        // Aquí deberías crear el store en la tabla correspondiente
+        // Por ahora solo guardamos la información en el usuario
+        savedUser.storeInfo = {
+          name: store.name,
+          description: store.description,
+          address: store.address,
+          phone: store.phone,
+          schedule: store.schedule,
+          images: store.images
+        };
+        
+        await this.userRepository.save(savedUser);
+      }
+
+      // Enviar email de verificación
+      try {
+        this.logger.log(`Starting email verification process for internal registration: ${savedUser.email}`);
+        this.logger.log(`User ID: ${savedUser.id}, User Name: ${savedUser.firstName}`);
+        
+        await this.emailVerificationService.sendVerificationEmail(savedUser.id, savedUser.email);
+        this.logger.log(`Verification email sent successfully to ${savedUser.email} for internal registration`);
+      } catch (emailError) {
+        this.logger.error('Error sending verification email for internal registration:', emailError);
+        this.logger.error('Email error details:', {
+          userId: savedUser.id,
+          email: savedUser.email,
+          error: emailError.message,
+          stack: emailError.stack
+        });
+        // No fallar el registro si el email no se puede enviar
+      }
+
+      // No devolver la contraseña en la respuesta
+      const { password, ...userResponse } = savedUser;
+
+      return {
+        user: userResponse,
+        message: 'Internal registration request submitted successfully. Please check your email to verify your account. You will be notified when an administrator approves your account.'
+      };
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      this.logger.error('Error registering internal user:', error);
+      throw new Error('Failed to register internal user');
+    }
   }
 }

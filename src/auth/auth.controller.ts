@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus, Param } from '@nestjs/com
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterInternalDto } from './dto/register-internal.dto';
 import { BulkCreateUsersDto } from './dto/bulk-create-users.dto';
 import { Public } from './decorators/public.decorator';
 
@@ -24,6 +25,13 @@ export class AuthController {
   }
 
   @Public()
+  @Post('register-internal')
+  @HttpCode(HttpStatus.CREATED)
+  async registerInternal(@Body() registerInternalDto: RegisterInternalDto) {
+    return this.authService.registerInternal(registerInternalDto);
+  }
+
+  @Public()
   @Post('bulk-create')
   @HttpCode(HttpStatus.CREATED)
   async bulkCreateUsers(@Body() bulkCreateDto: BulkCreateUsersDto) {
@@ -38,5 +46,36 @@ export class AuthController {
     @Body('password') password: string
   ) {
     return this.authService.changePassword(+id, password);
+  }
+
+  @Public()
+  @Post('test-email')
+  @HttpCode(HttpStatus.OK)
+  async testEmail(@Body() body: { email: string; name: string }) {
+    return this.authService.testEmailConfiguration(body.email, body.name);
+  }
+
+  @Post('pending-registrations')
+  @HttpCode(HttpStatus.OK)
+  async getPendingRegistrations() {
+    return this.authService.getPendingRegistrations();
+  }
+
+  @Post('registration-history')
+  @HttpCode(HttpStatus.OK)
+  async getRegistrationHistory() {
+    return this.authService.getRegistrationHistory();
+  }
+
+  @Post('approve-registration/:id')
+  @HttpCode(HttpStatus.OK)
+  async approveRegistration(@Param('id') id: string) {
+    return this.authService.approveRegistration(+id);
+  }
+
+  @Post('reject-registration/:id')
+  @HttpCode(HttpStatus.OK)
+  async rejectRegistration(@Param('id') id: string, @Body() body: { reason: string }) {
+    return this.authService.rejectRegistration(+id, body.reason);
   }
 }

@@ -238,6 +238,176 @@ export class EmailVerificationService {
     }
   }
 
+  async sendApprovalEmail(email: string, userName: string): Promise<void> {
+    try {
+      this.logger.log(`Sending approval email to ${email}`);
+      
+      const brevo = require('@getbrevo/brevo');
+      let apiInstance = new brevo.TransactionalEmailsApi();
+      
+      let apiKey = apiInstance.authentications['apiKey'];
+      apiKey.apiKey = process.env.BREVO_API;
+      
+      let sendSmtpEmail = new brevo.SendSmtpEmail();
+
+      sendSmtpEmail.subject = "¡Tu cuenta ha sido aprobada en Elite!";
+      sendSmtpEmail.htmlContent = `
+        <html>
+          <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: white;">
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 40px 20px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">ELITE</h1>
+                <p style="color: #fecaca; margin: 10px 0 0 0; font-size: 16px;">Centro Comercial Elite</p>
+              </div>
+              
+              <!-- Content -->
+              <div style="padding: 40px 20px; text-align: center;">
+                <h2 style="color: #333; margin-bottom: 20px;">¡Felicitaciones, ${userName}!</h2>
+                <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                  Tu solicitud de registro ha sido <strong>aprobada</strong> por nuestro equipo administrativo.
+                </p>
+                
+                <div style="background-color: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                  <h3 style="color: #166534; margin: 0 0 10px 0;">✅ Cuenta Aprobada</h3>
+                  <p style="color: #166534; margin: 0;">
+                    Ya puedes acceder a tu cuenta y disfrutar de todos los servicios de Elite.
+                  </p>
+                </div>
+                
+                <div style="margin: 40px 0;">
+                  <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+                     style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); 
+                            color: white; 
+                            padding: 15px 30px; 
+                            text-decoration: none; 
+                            border-radius: 8px; 
+                            font-weight: bold; 
+                            font-size: 16px; 
+                            display: inline-block;
+                            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);">
+                    Iniciar Sesión
+                  </a>
+                </div>
+                
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+                  <p style="color: #999; font-size: 14px; margin: 0;">
+                    Si tienes alguna pregunta, no dudes en contactarnos.
+                  </p>
+                </div>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                <p style="color: #6c757d; font-size: 12px; margin: 0;">
+                  © ${new Date().getFullYear()} Centro Comercial Elite. Todos los derechos reservados.
+                </p>
+                <p style="color: #6c757d; font-size: 12px; margin: 5px 0 0 0;">
+                  Contacto: elitecc.soporte@gmail.com
+                </p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const senderEmail = "elitecc.soporte@gmail.com";
+      const replyToEmail = "elitecc.soporte@gmail.com";
+      
+      sendSmtpEmail.sender = { "name": "Elite", "email": senderEmail };
+      sendSmtpEmail.to = [{ "email": email, "name": userName }];
+      sendSmtpEmail.replyTo = { "email": replyToEmail };
+
+      const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
+      this.logger.log(`Approval email sent successfully to ${email}. Message ID: ${response.messageId}`);
+    } catch (error) {
+      this.logger.error('Error sending approval email:', error);
+      throw new Error('Failed to send approval email');
+    }
+  }
+
+  async sendRejectionEmail(email: string, userName: string, reason: string): Promise<void> {
+    try {
+      this.logger.log(`Sending rejection email to ${email}`);
+      
+      const brevo = require('@getbrevo/brevo');
+      let apiInstance = new brevo.TransactionalEmailsApi();
+      
+      let apiKey = apiInstance.authentications['apiKey'];
+      apiKey.apiKey = process.env.BREVO_API;
+      
+      let sendSmtpEmail = new brevo.SendSmtpEmail();
+
+      sendSmtpEmail.subject = "Actualización sobre tu solicitud de registro en Elite";
+      sendSmtpEmail.htmlContent = `
+        <html>
+          <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: white;">
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 40px 20px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">ELITE</h1>
+                <p style="color: #fecaca; margin: 10px 0 0 0; font-size: 16px;">Centro Comercial Elite</p>
+              </div>
+              
+              <!-- Content -->
+              <div style="padding: 40px 20px; text-align: center;">
+                <h2 style="color: #333; margin-bottom: 20px;">Hola ${userName}</h2>
+                <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                  Hemos revisado tu solicitud de registro y lamentamos informarte que no ha sido aprobada en esta ocasión.
+                </p>
+                
+                <div style="background-color: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                  <h3 style="color: #991b1b; margin: 0 0 10px 0;">❌ Solicitud No Aprobada</h3>
+                  <p style="color: #991b1b; margin: 0 0 15px 0;"><strong>Razón:</strong></p>
+                  <p style="color: #991b1b; margin: 0; font-style: italic;">${reason}</p>
+                </div>
+                
+                <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                  <h3 style="color: #0c4a6e; margin: 0 0 10px 0;">💡 ¿Qué puedes hacer?</h3>
+                  <ul style="color: #0c4a6e; text-align: left; margin: 0; padding-left: 20px;">
+                    <li>Revisar la información proporcionada</li>
+                    <li>Corregir cualquier error identificado</li>
+                    <li>Enviar una nueva solicitud si es necesario</li>
+                    <li>Contactarnos para más información</li>
+                  </ul>
+                </div>
+                
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+                  <p style="color: #999; font-size: 14px; margin: 0;">
+                    Si tienes preguntas sobre esta decisión, puedes contactarnos directamente.
+                  </p>
+                </div>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                <p style="color: #6c757d; font-size: 12px; margin: 0;">
+                  © ${new Date().getFullYear()} Centro Comercial Elite. Todos los derechos reservados.
+                </p>
+                <p style="color: #6c757d; font-size: 12px; margin: 5px 0 0 0;">
+                  Contacto: elitecc.soporte@gmail.com
+                </p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const senderEmail = "elitecc.soporte@gmail.com";
+      const replyToEmail = "elitecc.soporte@gmail.com";
+      
+      sendSmtpEmail.sender = { "name": "Elite", "email": senderEmail };
+      sendSmtpEmail.to = [{ "email": email, "name": userName }];
+      sendSmtpEmail.replyTo = { "email": replyToEmail };
+
+      const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
+      this.logger.log(`Rejection email sent successfully to ${email}. Message ID: ${response.messageId}`);
+    } catch (error) {
+      this.logger.error('Error sending rejection email:', error);
+      throw new Error('Failed to send rejection email');
+    }
+  }
+
   private handleDBErrors(error: any) {
     this.logger.error(error);
     
