@@ -1,17 +1,12 @@
+// Importar polyfills primero
+import './polyfills';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import * as crypto from 'crypto';
-
-import { webcrypto } from 'node:crypto';
-
-// Solución type-safe para Node.js 18
-if (!globalThis.crypto) {
-  globalThis.crypto = webcrypto as unknown as Crypto;
-}
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
