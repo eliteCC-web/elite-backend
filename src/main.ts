@@ -19,7 +19,12 @@ async function bootstrap() {
   
   // Configuración CORS
   app.enableCors({
-    origin: [configService.get('FRONTEND_URL'), 'http://localhost:3000', 'localhost:3000'],
+    origin: [
+      configService.get('FRONTEND_URL'), 
+      'http://localhost:3000', 
+      'localhost:3000',
+      'https://elite-frontend-production-f8ff.up.railway.app'
+    ],
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: 'Content-Type, Accept, Authorization',
