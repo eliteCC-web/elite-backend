@@ -64,8 +64,8 @@ export class User {
   @OneToMany(() => Schedule, (schedule) => schedule.user)
   schedules: Schedule[];
 
-  @OneToOne(() => Store, (store) => store.owner, { nullable: true })
-  ownedStore: Store;
+  @OneToMany(() => Store, (store) => store.owner)
+  ownedStores: Store[];
 
   // Relación con verificaciones de email
   @OneToMany(() => EmailVerification, (verification) => verification.user)

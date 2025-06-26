@@ -60,7 +60,7 @@ export class UserService {
 
   async findAll(): Promise<User[]> {
     const users = await this.userRepository.find({
-      relations: ['roles', 'roles.permissions']
+      relations: ['roles', 'roles.permissions', 'ownedStores']
     });
     
     // Eliminar contraseñas antes de devolver
@@ -73,7 +73,7 @@ export class UserService {
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['roles', 'roles.permissions']
+      relations: ['roles', 'roles.permissions', 'ownedStores']
     });
 
     if (!user) {

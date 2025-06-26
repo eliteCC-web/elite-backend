@@ -1,12 +1,20 @@
 // src/event/dto/register-event.dto.ts
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class RegisterEventDto {
   @IsNumber()
   @IsNotEmpty()
   eventId: number;
 
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  userId: number;
+  phone: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  email?: string;
 }

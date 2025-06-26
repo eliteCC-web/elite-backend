@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query, Req } from '@nestjs/common';
 import { StoreService } from './store.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
@@ -9,6 +9,12 @@ import { Public } from '../auth/decorators/public.decorator';
 import { PaginationDto } from '../common/interfaces/pagination.dto';
 import { PaginatedResponse } from '../common/interfaces/paginated-response.interface';
 import { Store } from './entities/store.entity';
+import { Request } from 'express';
+import { User } from '../user/entities/user.entity';
+
+interface RequestWithUser extends Request {
+  user?: User;
+}
 
 @Controller('stores')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -33,6 +39,20 @@ export class StoreController {
   @Public()
   findOne(@Param('id') id: string): Promise<Store> {
     return this.storeService.findOne(+id);
+  }
+
+  @Get('my-store')
+  @UseGuards(JwtAuthGuard)
+  @Roles('CLIENTE_INTERNO')
+  findMyStore(@Req() req: RequestWithUser): Promise<Store> {
+    return this.storeService.findByOwnerId(req.user.id);
+  }
+
+  @Put('my-store')
+  @UseGuards(JwtAuthGuard)
+  @Roles('CLIENTE_INTERNO')
+  updateMyStore(@Req() req: RequestWithUser, @Body() updateStoreDto: UpdateStoreDto): Promise<Store> {
+    return this.storeService.updateByOwnerId(req.user.id, updateStoreDto);
   }
 
   @Put(':id')

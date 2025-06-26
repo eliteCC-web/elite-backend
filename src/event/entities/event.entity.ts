@@ -1,6 +1,7 @@
 // src/event/entities/event.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable, OneToMany } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
+import { EventRegistration } from './event-registration.entity';
 
 @Entity('events')
 export class Event {
@@ -40,9 +41,6 @@ export class Event {
   @Column('simple-array', { nullable: true })
   images: string[];
 
-  @Column('simple-array', { nullable: true })
-  categories: string[];
-
   @Column()
   organizer: string;
 
@@ -71,4 +69,7 @@ export class Event {
     inverseJoinColumn: { name: 'user_id', referencedColumnName: 'id' }
   })
   registeredUsers: User[];
+
+  @OneToMany(() => EventRegistration, (eventRegistration) => eventRegistration.event)
+  eventRegistrations: EventRegistration[];
 }

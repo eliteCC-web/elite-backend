@@ -64,7 +64,7 @@ export class EventController {
   }
 
   @Post('register')
-  @Roles('ADMIN', 'COLABORADOR', 'CLIENTE_INTERNO', 'CLIENTE_EXTERNO')
+  @Public()
   registerUser(@Body() registerEventDto: RegisterEventDto) {
     return this.eventService.registerUser(registerEventDto);
   }

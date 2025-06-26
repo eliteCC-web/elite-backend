@@ -32,7 +32,7 @@ export class CreateEventDto {
   price?: number;
 
   @IsNumber()
-  @Min(1)
+  @Min(0)
   @IsOptional()
   capacity?: number;
 
@@ -43,10 +43,6 @@ export class CreateEventDto {
   @IsArray()
   @IsOptional()
   images?: string[];
-
-  @IsArray()
-  @IsOptional()
-  categories?: string[];
 
   @IsString()
   @IsNotEmpty()
@@ -65,6 +61,6 @@ export class CreateEventDto {
   isFeatured?: boolean;
 
   @IsString()
-  @IsNotEmpty()
-  slug: string;
+  @IsOptional()
+  slug?: string;
 }

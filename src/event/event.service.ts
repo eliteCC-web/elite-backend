@@ -4,9 +4,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { Event } from './entities/event.entity';
 import { User } from '../user/entities/user.entity';
+import { EventRegistration } from './entities/event-registration.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { RegisterEventDto } from './dto/register-event.dto';
+import { EmailNotificationService } from './services/email-notification.service';
 import { PaginatedResponse } from '../common/interfaces/paginated-response.interface';
 import { PaginationDto } from '../common/interfaces/pagination.dto';
 
@@ -18,22 +20,51 @@ export class EventService {
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(EventRegistration)
+    private readonly eventRegistrationRepository: Repository<EventRegistration>,
+    private readonly emailNotificationService: EmailNotificationService
   ) {}
+
+  private generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+  }
+
+  private async generateUniqueSlug(name: string): Promise<string> {
+    let slug = this.generateSlug(name);
+    let counter = 1;
+    let uniqueSlug = slug;
+
+    while (await this.eventRepository.findOne({ where: { slug: uniqueSlug } })) {
+      uniqueSlug = `${slug}-${counter}`;
+      counter++;
+    }
+
+    return uniqueSlug;
+  }
 
   async create(createEventDto: CreateEventDto): Promise<Event> {
     try {
+      // Generar slug automáticamente si no se proporciona
+      const slug = createEventDto.slug || await this.generateUniqueSlug(createEventDto.name);
+
       // Verificar si ya existe un evento con ese slug
       const existingEvent = await this.eventRepository.findOne({
-        where: { slug: createEventDto.slug }
+        where: { slug }
       });
 
       if (existingEvent) {
-        throw new BadRequestException(`Event with slug ${createEventDto.slug} already exists`);
+        throw new BadRequestException(`Event with slug ${slug} already exists`);
       }
 
       const event = this.eventRepository.create({
         ...createEventDto,
+        slug,
         startDate: new Date(createEventDto.startDate),
         endDate: new Date(createEventDto.endDate),
       });
@@ -92,26 +123,46 @@ export class EventService {
 
   async findOne(id: number): Promise<Event> {
     const event = await this.eventRepository.findOne({
-      where: { id },
-      relations: ['registeredUsers']
+      where: { id }
     });
 
     if (!event) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
 
+    // Obtener el conteo de registros activos
+    const registeredCount = await this.eventRegistrationRepository.count({
+      where: { 
+        eventId: id,
+        isActive: true
+      }
+    });
+
+    // Asignar el conteo al evento
+    event.registeredCount = registeredCount;
+
     return event;
   }
 
   async findBySlug(slug: string): Promise<Event> {
     const event = await this.eventRepository.findOne({
-      where: { slug },
-      relations: ['registeredUsers']
+      where: { slug }
     });
 
     if (!event) {
       throw new NotFoundException(`Event with slug ${slug} not found`);
     }
+
+    // Obtener el conteo de registros activos
+    const registeredCount = await this.eventRegistrationRepository.count({
+      where: { 
+        eventId: event.id,
+        isActive: true
+      }
+    });
+
+    // Asignar el conteo al evento
+    event.registeredCount = registeredCount;
 
     return event;
   }
@@ -141,41 +192,81 @@ export class EventService {
   }
 
   async registerUser(registerEventDto: RegisterEventDto): Promise<Event> {
-    const { eventId, userId } = registerEventDto;
+    const { eventId, phone, name, email } = registerEventDto;
 
     const event = await this.eventRepository.findOne({
-      where: { id: eventId },
-      relations: ['registeredUsers']
+      where: { id: eventId }
     });
 
     if (!event) {
       throw new NotFoundException(`Event with ID ${eventId} not found`);
     }
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId }
+    // Verificar si el evento está activo
+    if (!event.isActive) {
+      throw new BadRequestException('Event is not active');
+    }
+
+    // Verificar si el evento ya pasó
+    const now = new Date();
+    const eventDate = new Date(event.startDate);
+    if (eventDate < now) {
+      throw new BadRequestException('Event has already passed');
+    }
+
+    // Verificar si el usuario ya está registrado por teléfono
+    const existingRegistration = await this.eventRegistrationRepository.findOne({
+      where: { 
+        eventId,
+        phone,
+        isActive: true
+      }
     });
 
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
+    if (existingRegistration) {
+      throw new BadRequestException('User is already registered for this event with this phone number');
     }
 
-    // Verificar si el usuario ya está registrado
-    const isAlreadyRegistered = event.registeredUsers.some(u => u.id === userId);
-    if (isAlreadyRegistered) {
-      throw new BadRequestException('User is already registered for this event');
+    // Verificar capacidad (solo si no es ilimitado)
+    if (event.capacity > 0) {
+      const registeredCount = await this.eventRegistrationRepository.count({
+        where: { 
+          eventId,
+          isActive: true
+        }
+      });
+
+      if (registeredCount >= event.capacity) {
+        throw new BadRequestException('Event is at full capacity');
+      }
     }
 
-    // Verificar capacidad
-    if (event.capacity > 0 && event.registeredCount >= event.capacity) {
-      throw new BadRequestException('Event is at full capacity');
-    }
+    // Generar código único de registro
+    const registrationCode = this.generateRegistrationCode();
 
-    // Registrar usuario
-    event.registeredUsers.push(user);
-    event.registeredCount = event.registeredUsers.length;
+    // Crear el registro
+    const registration = this.eventRegistrationRepository.create({
+      eventId,
+      phone,
+      name,
+      email,
+      registrationCode,
+      isActive: true
+    });
 
-    return await this.eventRepository.save(event);
+    await this.eventRegistrationRepository.save(registration);
+
+    // Enviar email de confirmación
+    await this.emailNotificationService.sendEventRegistrationEmail(event, registration);
+
+    // Retornar el evento actualizado
+    return await this.findOne(eventId);
+  }
+
+  private generateRegistrationCode(): string {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    return `EVT-${timestamp}-${random}`.toUpperCase();
   }
 
   async unregisterUser(eventId: number, userId: number): Promise<Event> {

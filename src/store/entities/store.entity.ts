@@ -19,8 +19,11 @@ export class Store {
   @Column({ nullable: true })
   description: string;
 
-  @Column({ nullable: true })
-  imageUrl: string;
+  @Column({ type: 'jsonb', nullable: true })
+  images: string[];
+
+  @Column({ type: 'jsonb', nullable: true })
+  schedule: any;
 
   @Column({ nullable: true })
   category: string;
@@ -34,7 +37,7 @@ export class Store {
   @Column({ default: true })
   isActive: boolean;
 
-  @OneToOne(() => User, (user) => user.ownedStore, { nullable: true })
+  @OneToOne(() => User, (user) => user.ownedStores, { nullable: true })
   @JoinColumn()
   owner: User;
 

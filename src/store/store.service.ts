@@ -75,6 +75,18 @@ export class StoreService {
     return store;
   }
 
+  async findByOwnerId(ownerId: number): Promise<Store> {
+    const store = await this.storeRepository.findOne({
+      where: { ownerId }
+    });
+
+    if (!store) {
+      throw new NotFoundException(`Store for owner ID ${ownerId} not found`);
+    }
+
+    return store;
+  }
+
   async update(id: number, updateStoreDto: UpdateStoreDto): Promise<Store> {
     try {
       const store = await this.storeRepository.preload({
@@ -87,6 +99,25 @@ export class StoreService {
       }
 
       return await this.storeRepository.save(store);
+    } catch (error) {
+      this.handleDBExceptions(error);
+    }
+  }
+
+  async updateByOwnerId(ownerId: number, updateStoreDto: UpdateStoreDto): Promise<Store> {
+    try {
+      const store = await this.findByOwnerId(ownerId);
+      
+      const updatedStore = await this.storeRepository.preload({
+        id: store.id,
+        ...updateStoreDto
+      });
+
+      if (!updatedStore) {
+        throw new NotFoundException(`Store with ID ${store.id} not found`);
+      }
+
+      return await this.storeRepository.save(updatedStore);
     } catch (error) {
       this.handleDBExceptions(error);
     }

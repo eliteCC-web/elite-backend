@@ -10,6 +10,7 @@ import { User } from '../user/entities/user.entity';
 import { Role } from '../role/entities/role.entity';
 import { UserService } from '../user/user.service';
 import { EmailVerificationService } from '../email-verification/services/email-verification.service';
+import { StoreService } from '../store/store.service';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +24,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
-    private readonly emailVerificationService: EmailVerificationService
+    private readonly emailVerificationService: EmailVerificationService,
+    private readonly storeService: StoreService
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -434,20 +436,50 @@ export class AuthService {
 
       const savedUser = await this.userRepository.save(newUser);
 
-      // Si es CLIENTE_INTERNO, crear el store
+      // Si es CLIENTE_INTERNO y tiene información de tienda, crear la tienda
       if (userData.roleType === 'CLIENTE_INTERNO' && store) {
-        // Aquí deberías crear el store en la tabla correspondiente
-        // Por ahora solo guardamos la información en el usuario
-        savedUser.storeInfo = {
-          name: store.name,
-          description: store.description,
-          address: store.address,
-          phone: store.phone,
-          schedule: store.schedule,
-          images: store.images
-        };
-        
-        await this.userRepository.save(savedUser);
+        try {
+          // Generar un número de local único basado en el nombre de la tienda
+          const storeNumber = this.generateStoreNumber(store.name);
+          
+          // Crear la tienda usando solo los campos existentes
+          const storeData = {
+            storeNumber: store.address, // Usar address como storeNumber
+            name: store.name,
+            phone: store.phone,
+            description: store.description,
+            images: store.images || [],
+            schedule: store.schedule,
+            ownerId: savedUser.id
+          };
+
+          this.logger.log(`Creating store for user ${savedUser.email} with data:`, storeData);
+
+          const createdStore = await this.storeService.create(storeData);
+          
+          // No necesitamos actualizar el usuario porque la relación se establece automáticamente
+          // a través del ownerId en la tabla stores
+          
+          this.logger.log(`✅ Store created successfully for user ${savedUser.email}: ${createdStore.name} (${createdStore.storeNumber})`);
+        } catch (storeError) {
+          this.logger.error('❌ Error creating store for internal user:', storeError);
+          this.logger.error('Store creation failed for user:', savedUser.email);
+          this.logger.error('Store data that failed:', store);
+          
+          // No fallar el registro del usuario si la tienda no se puede crear
+          // La tienda se puede crear manualmente después
+          // Pero guardamos la información en storeInfo como respaldo
+          savedUser.storeInfo = {
+            name: store.name,
+            description: store.description,
+            address: store.address,
+            phone: store.phone,
+            schedule: store.schedule,
+            images: store.images,
+            error: 'Failed to create store automatically. Please create manually.'
+          };
+          await this.userRepository.save(savedUser);
+        }
       }
 
       // Enviar email de verificación
@@ -482,5 +514,14 @@ export class AuthService {
       this.logger.error('Error registering internal user:', error);
       throw new Error('Failed to register internal user');
     }
+  }
+
+  // Método auxiliar para generar número de local único
+  private generateStoreNumber(storeName: string): string {
+    const timestamp = Date.now().toString().slice(-4);
+    // Limpiar el nombre y tomar los primeros 3 caracteres válidos
+    const cleanName = storeName.replace(/[^A-Za-z]/g, '').toUpperCase();
+    const namePrefix = cleanName.length >= 3 ? cleanName.substring(0, 3) : 'STO';
+    return `${namePrefix}-${timestamp}`;
   }
 }
