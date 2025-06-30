@@ -63,6 +63,66 @@ export class StoreService {
     }
   }
 
+  async findStores(paginationDto: PaginationDto): Promise<PaginatedResponse<Store>> {
+    try {
+      const { page = 1, limit = 10 } = paginationDto;
+      const skip = (page - 1) * limit;
+
+      const [data, total] = await this.storeRepository.findAndCount({
+        where: { isService: false },
+        skip,
+        take: limit,
+      });
+
+      // Calcular metadata para la paginación
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      };
+    } catch (error) {
+      this.handleDBExceptions(error);
+    }
+  }
+
+  async findServices(paginationDto: PaginationDto): Promise<PaginatedResponse<Store>> {
+    try {
+      const { page = 1, limit = 10 } = paginationDto;
+      const skip = (page - 1) * limit;
+
+      const [data, total] = await this.storeRepository.findAndCount({
+        where: { isService: true },
+        skip,
+        take: limit,
+      });
+
+      // Calcular metadata para la paginación
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      };
+    } catch (error) {
+      this.handleDBExceptions(error);
+    }
+  }
+
   async findOne(id: number): Promise<Store> {
     const store = await this.storeRepository.findOne({
       where: { id }

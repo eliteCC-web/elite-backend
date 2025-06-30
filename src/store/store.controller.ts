@@ -35,6 +35,18 @@ export class StoreController {
     return this.storeService.findAll(paginationDto);
   }
 
+  @Get('tiendas')
+  @Public()
+  findStores(@Query() paginationDto: PaginationDto): Promise<PaginatedResponse<Store>> {
+    return this.storeService.findStores(paginationDto);
+  }
+
+  @Get('servicios')
+  @Public()
+  findServices(@Query() paginationDto: PaginationDto): Promise<PaginatedResponse<Store>> {
+    return this.storeService.findServices(paginationDto);
+  }
+
   @Get(':id')
   @Public()
   findOne(@Param('id') id: string): Promise<Store> {

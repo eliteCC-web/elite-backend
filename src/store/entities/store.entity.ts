@@ -37,6 +37,9 @@ export class Store {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ default: false })
+  isService: boolean;
+
   @OneToOne(() => User, (user) => user.ownedStores, { nullable: true })
   @JoinColumn()
   owner: User;

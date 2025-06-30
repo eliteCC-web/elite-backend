@@ -1,5 +1,5 @@
 // create-store.dto.ts
-import { IsNotEmpty, IsString, IsOptional, IsUrl, IsNumber, IsObject, IsArray } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsArray, IsBoolean, IsNumber } from 'class-validator';
 
 export class CreateStoreDto {
   @IsString()
@@ -22,9 +22,12 @@ export class CreateStoreDto {
   @IsOptional()
   images?: string[];
 
-  @IsObject()
   @IsOptional()
   schedule?: any;
+
+  @IsBoolean()
+  @IsOptional()
+  isService?: boolean;
 
   @IsNumber()
   @IsOptional()
