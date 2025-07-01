@@ -19,7 +19,7 @@ async function bootstrap() {
   
   // Configuración CORS
   app.enableCors({
-    origin: '*',
+    origin: ['https://www.elitecentrocomercial.com', 'https://elitecentrocomercial.com', 'http://localhost:3000', 'http://127.0.0.1:3000', 'https://elite-frontend.railway.app', 'https://elite-cc.vercel.app'],
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
