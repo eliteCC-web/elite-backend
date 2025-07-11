@@ -2,7 +2,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { CreateScheduleDto, BulkCreateScheduleDto, AssignRandomShiftsDto } from './dto/create-schedule.dto';
-import { AssignShiftDto } from './dto/assign-shift.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -29,12 +28,6 @@ export class ScheduleController {
   @Roles('ADMIN')
   assignRandomShifts(@Body() assignDto: AssignRandomShiftsDto, @Request() req) {
     return this.scheduleService.assignRandomShifts(assignDto, req.user.id);
-  }
-
-  @Post('assign-shift')
-  @Roles('ADMIN')
-  assignShift(@Body() assignDto: AssignShiftDto, @Request() req) {
-    return this.scheduleService.assignShift(assignDto, req.user.id);
   }
 
   @Get('my-schedule')

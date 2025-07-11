@@ -6,8 +6,6 @@ import { Schedule } from './entities/schedule.entity';
 import { User } from '../user/entities/user.entity';
 import { CreateScheduleDto, BulkCreateScheduleDto, AssignRandomShiftsDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
-import { AssignShiftDto } from './dto/assign-shift.dto';
-import { ScheduleNotificationService } from './services/schedule-notification.service';
 
 @Injectable()
 export class ScheduleService {
@@ -15,11 +13,10 @@ export class ScheduleService {
     @InjectRepository(Schedule)
     private readonly scheduleRepository: Repository<Schedule>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    private readonly notificationService: ScheduleNotificationService
+    private readonly userRepository: Repository<User>
   ) {}
 
-  async create(createScheduleDto: CreateScheduleDto, adminId?: number): Promise<Schedule> {
+  async create(createScheduleDto: CreateScheduleDto): Promise<Schedule> {
     const user = await this.userRepository.findOne({
       where: { id: createScheduleDto.userId },
       relations: ['roles']
@@ -38,22 +35,10 @@ export class ScheduleService {
     const schedule = this.scheduleRepository.create({
       ...createScheduleDto,
       date: new Date(createScheduleDto.date),
-      user,
-      isAssigned: !!adminId,
-      assignedBy: adminId
+      user
     });
 
-    const savedSchedule = await this.scheduleRepository.save(schedule);
-
-    // Enviar notificación por email si fue asignado por un admin
-    if (adminId) {
-      const admin = await this.userRepository.findOne({ where: { id: adminId } });
-      if (admin) {
-        this.notificationService.sendShiftAssignmentEmail(savedSchedule, user, admin);
-      }
-    }
-
-    return savedSchedule;
+    return this.scheduleRepository.save(schedule);
   }
 
   async findByUser(userId: number): Promise<Schedule[]> {
@@ -240,52 +225,5 @@ export class ScheduleService {
       relations: ['user'],
       order: { date: 'ASC', startTime: 'ASC' }
     });
-  }
-
-  async assignShift(assignDto: AssignShiftDto, adminId: number): Promise<Schedule[]> {
-    const { userIds, date, startTime, endTime, shiftType, position, notes } = assignDto;
-    
-    // Verificar que todos los usuarios existan y sean colaboradores
-    const users = await this.userRepository.find({
-      where: { id: In(userIds) },
-      relations: ['roles']
-    });
-
-    if (users.length !== userIds.length) {
-      throw new BadRequestException('Some users not found');
-    }
-
-    const colaboradores = users.filter(user => 
-      user.roles?.some(role => role.name === 'COLABORADOR')
-    );
-
-    if (colaboradores.length !== userIds.length) {
-      throw new BadRequestException('All users must be colaboradores');
-    }
-
-    // Eliminar turnos existentes para esa fecha y usuarios
-    await this.scheduleRepository.delete({
-      userId: In(userIds),
-      date: new Date(date)
-    });
-
-    // Crear nuevos turnos
-    const schedules: Schedule[] = [];
-    for (const user of colaboradores) {
-      const scheduleDto: CreateScheduleDto = {
-        userId: user.id,
-        date,
-        startTime,
-        endTime,
-        shiftType: shiftType || 'FULL_DAY',
-        position: position || user.roles?.[0]?.name || 'COLABORADOR',
-        notes
-      };
-
-      const schedule = await this.create(scheduleDto, adminId);
-      schedules.push(schedule);
-    }
-
-    return schedules;
   }
 }
