@@ -6,6 +6,7 @@ import { Schedule } from './entities/schedule.entity';
 import { User } from '../user/entities/user.entity';
 import { CreateScheduleDto, BulkCreateScheduleDto, AssignRandomShiftsDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
+import { ScheduleNotificationService } from './services/schedule-notification.service';
 
 @Injectable()
 export class ScheduleService {
@@ -13,7 +14,8 @@ export class ScheduleService {
     @InjectRepository(Schedule)
     private readonly scheduleRepository: Repository<Schedule>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
+    private readonly notificationService: ScheduleNotificationService
   ) {}
 
   async create(createScheduleDto: CreateScheduleDto): Promise<Schedule> {
@@ -32,19 +34,53 @@ export class ScheduleService {
       throw new BadRequestException('Only colaboradores can have schedules');
     }
 
+    // Parse date properly to avoid timezone issues
+    const dateString = createScheduleDto.date;
+    let parsedDate: Date;
+    
+    if (dateString.includes('T')) {
+      // If it's already in ISO format, parse it directly
+      parsedDate = new Date(dateString);
+    } else {
+      // If it's just a date string (YYYY-MM-DD), create it in local timezone
+      const [year, month, day] = dateString.split('-').map(Number);
+      parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+    }
+    
+    console.log('Original date string:', dateString);
+    console.log('Parsed date:', parsedDate);
+    console.log('Parsed date ISO:', parsedDate.toISOString());
+    
     const schedule = this.scheduleRepository.create({
       ...createScheduleDto,
-      date: new Date(createScheduleDto.date),
+      date: parsedDate,
       user
     });
 
-    return this.scheduleRepository.save(schedule);
+    const savedSchedule = await this.scheduleRepository.save(schedule);
+
+    // Enviar notificación por email
+    try {
+      await this.notificationService.sendScheduleNotification(savedSchedule.id);
+    } catch (error) {
+      console.error('Error sending schedule notification:', error);
+      // No lanzamos el error para no afectar la creación del turno
+    }
+
+    return savedSchedule;
   }
 
   async findByUser(userId: number): Promise<Schedule[]> {
     return this.scheduleRepository.find({
       where: { userId },
       order: { date: 'ASC' }
+    });
+  }
+
+  async findAll(): Promise<Schedule[]> {
+    return this.scheduleRepository.find({
+      relations: ['user'],
+      order: { date: 'ASC', startTime: 'ASC' }
     });
   }
 
@@ -200,7 +236,18 @@ export class ScheduleService {
     }
 
     // Crear todos los horarios
-    return this.bulkCreate({ weekStartDate, schedules });
+    const createdSchedules = await this.bulkCreate({ weekStartDate, schedules });
+
+    // Enviar notificaciones por email para cada turno creado
+    for (const schedule of createdSchedules) {
+      try {
+        await this.notificationService.sendScheduleNotification(schedule.id);
+      } catch (error) {
+        console.error(`Error sending notification for schedule ${schedule.id}:`, error);
+      }
+    }
+
+    return createdSchedules;
   }
 
   async getColaboradores(): Promise<User[]> {

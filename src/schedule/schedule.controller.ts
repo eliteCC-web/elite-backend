@@ -6,22 +6,20 @@ import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { ScheduleNotificationService } from './services/schedule-notification.service';
 
 @Controller('schedule')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ScheduleController {
-  constructor(private readonly scheduleService: ScheduleService) {}
+  constructor(
+    private readonly scheduleService: ScheduleService,
+    private readonly notificationService: ScheduleNotificationService
+  ) {}
 
   @Post()
   @Roles('ADMIN')
   create(@Body() createScheduleDto: CreateScheduleDto) {
     return this.scheduleService.create(createScheduleDto);
-  }
-
-  @Post('bulk')
-  @Roles('ADMIN')
-  bulkCreate(@Body() bulkCreateDto: BulkCreateScheduleDto) {
-    return this.scheduleService.bulkCreate(bulkCreateDto);
   }
 
   @Post('assign-random')
@@ -30,28 +28,22 @@ export class ScheduleController {
     return this.scheduleService.assignRandomShifts(assignDto, req.user.id);
   }
 
-  @Get('my-schedule')
-  @Roles('COLABORADOR')
-  findMySchedule(@Request() req) {
-    return this.scheduleService.findByUser(req.user.id);
-  }
-
-  @Get('my-schedule/three-weeks')
-  @Roles('COLABORADOR')
-  getMyThreeWeeksSchedule(@Request() req) {
-    return this.scheduleService.getThreeWeeksSchedule(req.user.id);
+  @Get()
+  @Roles('ADMIN')
+  findAll() {
+    return this.scheduleService.findAll();
   }
 
   @Get('user/:id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COLABORADOR')
   findByUser(@Param('id') id: string) {
     return this.scheduleService.findByUser(+id);
   }
 
-  @Get('colaboradores')
-  @Roles('ADMIN')
-  getColaboradores() {
-    return this.scheduleService.getColaboradores();
+  @Get('user/:id/three-weeks')
+  @Roles('ADMIN', 'COLABORADOR')
+  getThreeWeeksSchedule(@Param('id') id: string) {
+    return this.scheduleService.getThreeWeeksSchedule(+id);
   }
 
   @Get('weekly')
@@ -70,5 +62,39 @@ export class ScheduleController {
   @Roles('ADMIN')
   remove(@Param('id') id: string) {
     return this.scheduleService.remove(+id);
+  }
+
+  @Get('colaboradores')
+  @Roles('ADMIN')
+  getColaboradores() {
+    return this.scheduleService.getColaboradores();
+  }
+
+  // Nuevos endpoints para notificaciones
+  @Post('notifications/send/:id')
+  @Roles('ADMIN')
+  async sendNotification(@Param('id') id: string) {
+    await this.notificationService.sendScheduleNotification(+id);
+    return { message: 'Notification sent successfully' };
+  }
+
+  @Post('notifications/send-bulk')
+  @Roles('ADMIN')
+  async sendBulkNotifications(@Body() body: { scheduleIds: number[] }) {
+    await this.notificationService.sendBulkScheduleNotifications(body.scheduleIds);
+    return { message: 'Bulk notifications sent successfully' };
+  }
+
+  @Post('notifications/reminder/:id')
+  @Roles('ADMIN')
+  async sendReminder(@Param('id') id: string) {
+    await this.notificationService.sendScheduleReminder(+id);
+    return { message: 'Reminder sent successfully' };
+  }
+
+  @Get('notifications/pending/:userId')
+  @Roles('ADMIN', 'COLABORADOR')
+  async getPendingNotifications(@Param('userId') userId: string) {
+    return this.notificationService.getUserPendingNotifications(+userId);
   }
 }
