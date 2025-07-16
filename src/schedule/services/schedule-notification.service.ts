@@ -147,15 +147,10 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
-      // Formatear la fecha correctamente para evitar problemas de zona horaria
-      const scheduleDate = new Date(schedule.date);
-      const year = scheduleDate.getFullYear();
-      const month = scheduleDate.getMonth();
-      const day = scheduleDate.getDate();
-      
-      // Crear fecha en zona horaria local para evitar desplazamientos
-      const localDate = new Date(year, month, day);
-      const formattedDate = localDate.toLocaleDateString('es-ES', {
+      // Usar directamente la fecha de la base de datos sin procesar
+      const dateString = schedule.date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const [year, month, day] = dateString.split('-').map(Number);
+      const formattedDate = new Date(year, month - 1, day).toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -275,15 +270,10 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
-      // Formatear la fecha correctamente para evitar problemas de zona horaria
-      const scheduleDate = new Date(schedule.date);
-      const year = scheduleDate.getFullYear();
-      const month = scheduleDate.getMonth();
-      const day = scheduleDate.getDate();
-      
-      // Crear fecha en zona horaria local para evitar desplazamientos
-      const localDate = new Date(year, month, day);
-      const formattedDate = localDate.toLocaleDateString('es-ES', {
+      // Usar directamente la fecha de la base de datos sin procesar
+      const dateString = schedule.date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const [year, month, day] = dateString.split('-').map(Number);
+      const formattedDate = new Date(year, month - 1, day).toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
