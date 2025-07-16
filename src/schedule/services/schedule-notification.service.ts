@@ -147,7 +147,15 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
-      const formattedDate = new Date(schedule.date).toLocaleDateString('es-ES', {
+      // Formatear la fecha correctamente para evitar problemas de zona horaria
+      const scheduleDate = new Date(schedule.date);
+      const year = scheduleDate.getFullYear();
+      const month = scheduleDate.getMonth();
+      const day = scheduleDate.getDate();
+      
+      // Crear fecha en zona horaria local para evitar desplazamientos
+      const localDate = new Date(year, month, day);
+      const formattedDate = localDate.toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -267,7 +275,15 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
-      const formattedDate = new Date(schedule.date).toLocaleDateString('es-ES', {
+      // Formatear la fecha correctamente para evitar problemas de zona horaria
+      const scheduleDate = new Date(schedule.date);
+      const year = scheduleDate.getFullYear();
+      const month = scheduleDate.getMonth();
+      const day = scheduleDate.getDate();
+      
+      // Crear fecha en zona horaria local para evitar desplazamientos
+      const localDate = new Date(year, month, day);
+      const formattedDate = localDate.toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
