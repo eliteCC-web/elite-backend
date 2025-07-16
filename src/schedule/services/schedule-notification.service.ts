@@ -147,10 +147,11 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
-      // Usar directamente la fecha de la base de datos sin procesar
-      const dateString = schedule.date.toISOString().split('T')[0]; // YYYY-MM-DD
-      const [year, month, day] = dateString.split('-').map(Number);
-      const formattedDate = new Date(year, month - 1, day).toLocaleDateString('es-ES', {
+      // Usar directamente la fecha de la base de datos - SOLUCIÓN SIMPLE
+      const year = schedule.date.getFullYear();
+      const month = schedule.date.getMonth();
+      const day = schedule.date.getDate();
+      const formattedDate = new Date(year, month, day).toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -270,10 +271,11 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
-      // Usar directamente la fecha de la base de datos sin procesar
-      const dateString = schedule.date.toISOString().split('T')[0]; // YYYY-MM-DD
-      const [year, month, day] = dateString.split('-').map(Number);
-      const formattedDate = new Date(year, month - 1, day).toLocaleDateString('es-ES', {
+      // Usar directamente la fecha de la base de datos - SOLUCIÓN SIMPLE
+      const year = schedule.date.getFullYear();
+      const month = schedule.date.getMonth();
+      const day = schedule.date.getDate();
+      const formattedDate = new Date(year, month, day).toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
