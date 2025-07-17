@@ -147,18 +147,16 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
-      // TOMAR FECHA COMO STRING DE LA BASE DE DATOS
-      const fechaString = schedule.date.toISOString().split('T')[0]; // "2024-01-14"
-      const [year, month, day] = fechaString.split('-').map(Number);
-      
-      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-      const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-      
-      const fecha = new Date(year, month - 1, day); // month - 1 porque los meses son 0-indexed
-      const diaSemana = dias[fecha.getDay()];
-      const mes = meses[month - 1];
-      
-      const formattedDate = `${diaSemana} ${day} de ${mes} de ${year}`;
+      // Usar directamente la fecha de la base de datos - SOLUCIÓN SIMPLE
+      const year = schedule.date.getFullYear();
+      const month = schedule.date.getMonth();
+      const day = schedule.date.getDate();
+      const formattedDate = new Date(year, month, day).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
 
       const shiftTypeText = this.getShiftTypeText(schedule.shiftType);
 
@@ -273,18 +271,13 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
-      // TOMAR FECHA COMO STRING DE LA BASE DE DATOS
-      const fechaString = schedule.date.toISOString().split('T')[0]; // "2024-01-14"
-      const [year, month, day] = fechaString.split('-').map(Number);
-      
-      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-      const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-      
-      const fecha = new Date(year, month - 1, day); // month - 1 porque los meses son 0-indexed
-      const diaSemana = dias[fecha.getDay()];
-      const mes = meses[month - 1];
-      
-      const formattedDate = `${diaSemana} ${day} de ${mes} de ${year}`;
+      // Usar directamente la fecha de la base de datos - SOLUCIÓN SIMPLE
+      const formattedDate = schedule.date.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
 
       const shiftTypeText = this.getShiftTypeText(schedule.shiftType);
 
