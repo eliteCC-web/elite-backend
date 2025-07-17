@@ -13,8 +13,8 @@ export class Schedule {
   @Column()
   userId: number;
 
-  @Column()
-  date: Date;
+  @Column({ type: 'date' }) // 👈 importante
+  date: Date;  
 
   @Column()
   startTime: string; // "08:00"
