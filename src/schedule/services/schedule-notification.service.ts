@@ -271,13 +271,25 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
+      this.logger.log(`Raw date: ${schedule.date.toISOString()}`);
+      this.logger.log(`Locale date: ${schedule.date.toLocaleDateString('es-ES')}`);
+      this.logger.log(`Locale date: ${schedule.date.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}`);
+
+
       // Usar directamente la fecha de la base de datos - SOLUCIÓN SIMPLE
-      const formattedDate = schedule.date.toLocaleDateString('es-ES', {
+      const formattedDate = new Date(schedule.date.toISOString().split('T')[0])
+      .toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       });
+
 
       const shiftTypeText = this.getShiftTypeText(schedule.shiftType);
 
