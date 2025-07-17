@@ -282,13 +282,15 @@ export class ScheduleNotificationService {
 
 
       // Usar directamente la fecha de la base de datos - SOLUCIÓN SIMPLE
-      const formattedDate = new Date(schedule.date.toISOString().split('T')[0])
-      .toLocaleDateString('es-ES', {
+      const [yyyy, mm, dd] = schedule.date.toISOString().split('T')[0].split('-');
+
+      const formattedDate = new Date(`${yyyy}-${mm}-${dd}`).toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
       });
+
 
 
       const shiftTypeText = this.getShiftTypeText(schedule.shiftType);
