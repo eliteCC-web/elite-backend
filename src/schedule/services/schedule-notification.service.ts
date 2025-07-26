@@ -17,6 +17,8 @@ export class ScheduleNotificationService {
 
   async sendScheduleNotification(scheduleId: number): Promise<void> {
     try {
+      console.log('🔔 [NotificationService] sendScheduleNotification called!');
+      console.log('🆔 [NotificationService] Schedule ID:', scheduleId);
       this.logger.log(`Starting to send notification for schedule ID: ${scheduleId}`);
       
       const schedule = await this.scheduleRepository.findOne({
@@ -45,6 +47,7 @@ export class ScheduleNotificationService {
       await this.sendEmailNotification(schedule);
       await this.markNotificationAsSent(scheduleId);
       
+      console.log('✅ [NotificationService] Notification process completed successfully!');
       this.logger.log(`Notification sent successfully for schedule ID: ${scheduleId}`);
       
     } catch (error) {
@@ -137,20 +140,17 @@ export class ScheduleNotificationService {
       this.logger.log(`Starting email notification for schedule ID: ${schedule.id}`);
       this.logger.log(`BREVO_API key length: ${process.env.BREVO_API?.length || 0}`);
       
-      const brevo = require('@getbrevo/brevo');
-      let apiInstance = new brevo.TransactionalEmailsApi();
+      // Usar axios directo como en el script que funciona
+      const axios = require('axios');
       
-      let apiKey = apiInstance.authentications['apiKey'];
-      apiKey.apiKey = process.env.BREVO_API;
+      this.logger.log(`Using axios for email sending`);
       
-      this.logger.log(`Brevo API instance created successfully`);
-      
-      let sendSmtpEmail = new brevo.SendSmtpEmail();
-
-      // Usar directamente la fecha de la base de datos - SOLUCIÓN SIMPLE
-      const year = schedule.date.getFullYear();
-      const month = schedule.date.getMonth();
-      const day = schedule.date.getDate();
+      // Crear el contenido del email
+      // Convertir schedule.date a Date object si es string
+      const scheduleDate = typeof schedule.date === 'string' ? new Date(schedule.date) : schedule.date;
+      const year = scheduleDate.getFullYear();
+      const month = scheduleDate.getMonth();
+      const day = scheduleDate.getDate();
       const formattedDate = new Date(year, month, day).toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
@@ -160,8 +160,8 @@ export class ScheduleNotificationService {
 
       const shiftTypeText = this.getShiftTypeText(schedule.shiftType);
 
-      sendSmtpEmail.subject = `Nuevo turno asignado - ${formattedDate}`;
-      sendSmtpEmail.htmlContent = `
+      const emailSubject = `Nuevo turno asignado - ${formattedDate}`;
+      const emailHtmlContent = `
         <html>
           <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
             <div style="max-width: 600px; margin: 0 auto; background-color: white;">
@@ -236,27 +236,52 @@ export class ScheduleNotificationService {
       // Configurar el remitente
       const senderEmail = "elitecc.soporte@gmail.com";
       const replyToEmail = "elitecc.soporte@gmail.com";
-      
-      sendSmtpEmail.sender = { "name": "Elite Centro Comercial", "email": senderEmail };
-      sendSmtpEmail.to = [{ "email": schedule.user.email, "name": `${schedule.user.firstName} ${schedule.user.lastName}` }];
-      sendSmtpEmail.replyTo = { "email": replyToEmail };
 
       this.logger.log(`=== EMAIL CONFIGURATION ===`);
       this.logger.log(`Sender: ${senderEmail}`);
       this.logger.log(`Recipient: ${schedule.user.email} (${schedule.user.firstName} ${schedule.user.lastName})`);
-      this.logger.log(`Subject: ${sendSmtpEmail.subject}`);
-      this.logger.log(`Content length: ${sendSmtpEmail.htmlContent?.length || 0} characters`);
+      this.logger.log(`Subject: ${emailSubject}`);
+      this.logger.log(`Content length: ${emailHtmlContent.length} characters`);
       this.logger.log(`=== END EMAIL CONFIGURATION ===`);
 
       this.logger.log(`Sending schedule notification email to ${schedule.user.email}`);
       
-      const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
+      // Usar axios directo como en el script que funciona
+      const emailData = {
+        sender: {
+          name: "Elite Centro Comercial",
+          email: senderEmail
+        },
+        to: [
+          {
+            email: schedule.user.email,
+            name: `${schedule.user.firstName} ${schedule.user.lastName}`
+          }
+        ],
+        subject: emailSubject,
+        htmlContent: emailHtmlContent,
+        replyTo: {
+          email: replyToEmail
+        }
+      };
+
+      const response = await axios.post('https://api.brevo.com/v3/smtp/email', emailData, {
+        headers: {
+          'accept': 'application/json',
+          'api-key': process.env.BREVO_API,
+          'content-type': 'application/json'
+        }
+      });
       
       this.logger.log(`Schedule notification email sent successfully to ${schedule.user.email}`);
-      this.logger.log(`Message ID: ${response.messageId || response.body?.messageId}`);
+      this.logger.log(`Message ID: ${response.data.messageId}`);
       
     } catch (error) {
       this.logger.error('Error sending schedule notification email:', error);
+      if (error.response) {
+        this.logger.error('Response status:', error.response.status);
+        this.logger.error('Response data:', error.response.data);
+      }
       throw error;
     }
   }
@@ -271,9 +296,12 @@ export class ScheduleNotificationService {
       
       let sendSmtpEmail = new brevo.SendSmtpEmail();
 
-      this.logger.log(`Raw date: ${schedule.date.toISOString()}`);
-      this.logger.log(`Locale date: ${schedule.date.toLocaleDateString('es-ES')}`);
-      this.logger.log(`Locale date: ${schedule.date.toLocaleDateString('es-ES', {
+      // Convertir schedule.date a Date object si es string
+      const scheduleDate = typeof schedule.date === 'string' ? new Date(schedule.date) : schedule.date;
+      
+      this.logger.log(`Raw date: ${scheduleDate.toISOString()}`);
+      this.logger.log(`Locale date: ${scheduleDate.toLocaleDateString('es-ES')}`);
+      this.logger.log(`Locale date: ${scheduleDate.toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -282,7 +310,7 @@ export class ScheduleNotificationService {
 
 
       // Usar directamente la fecha de la base de datos - SOLUCIÓN SIMPLE
-      const [yyyy, mm, dd] = schedule.date.toISOString().split('T')[0].split('-');
+      const [yyyy, mm, dd] = scheduleDate.toISOString().split('T')[0].split('-');
 
       const formattedDate = new Date(`${yyyy}-${mm}-${dd}`).toLocaleDateString('es-ES', {
         weekday: 'long',

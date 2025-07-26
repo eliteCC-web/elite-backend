@@ -19,7 +19,15 @@ export class ScheduleController {
   @Post()
   @Roles('ADMIN')
   create(@Body() createScheduleDto: CreateScheduleDto) {
-    return this.scheduleService.create(createScheduleDto);
+    console.log('🎯 [ScheduleController] POST /schedule endpoint called!');
+    console.log('📋 [ScheduleController] Request body:', createScheduleDto);
+    console.log('👤 [ScheduleController] User ID:', createScheduleDto.userId);
+    console.log('📅 [ScheduleController] Date:', createScheduleDto.date);
+    console.log('⏰ [ScheduleController] Time:', createScheduleDto.startTime, '-', createScheduleDto.endTime);
+    
+    const result = this.scheduleService.create(createScheduleDto);
+    console.log('✅ [ScheduleController] Returning result from service');
+    return result;
   }
 
   @Post('assign-random')
@@ -67,7 +75,10 @@ export class ScheduleController {
   @Get('colaboradores')
   @Roles('ADMIN')
   getColaboradores() {
-    return this.scheduleService.getColaboradores();
+    console.log('👥 [ScheduleController] GET /schedule/colaboradores endpoint called!');
+    const result = this.scheduleService.getColaboradores();
+    console.log('✅ [ScheduleController] Returning colaboradores');
+    return result;
   }
 
   // Nuevos endpoints para notificaciones

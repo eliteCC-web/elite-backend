@@ -59,11 +59,19 @@ export class ScheduleService {
 
     const savedSchedule = await this.scheduleRepository.save(schedule);
 
+    console.log('✅ [ScheduleService] Schedule saved successfully!');
+    console.log('🆔 [ScheduleService] Saved schedule ID:', savedSchedule.id);
+    console.log('👤 [ScheduleService] User:', savedSchedule.user?.firstName, savedSchedule.user?.lastName);
+    console.log('📧 [ScheduleService] User email:', savedSchedule.user?.email);
+
     // Enviar notificación por email
+    console.log('📤 [ScheduleService] Starting notification process...');
     try {
+      console.log('🔔 [ScheduleService] Calling notificationService.sendScheduleNotification...');
       await this.notificationService.sendScheduleNotification(savedSchedule.id);
+      console.log('✅ [ScheduleService] Notification sent successfully!');
     } catch (error) {
-      console.error('Error sending schedule notification:', error);
+      console.error('❌ [ScheduleService] Error sending schedule notification:', error);
       // No lanzamos el error para no afectar la creación del turno
     }
 
@@ -192,13 +200,10 @@ export class ScheduleService {
       FULL_DAY: { startTime: '08:00', endTime: '18:00', shiftType: 'FULL_DAY' }
     };
 
-    // Generar horarios para toda la semana
+    // Generar horarios para toda la semana (incluyendo sábados y domingos)
     for (let day = 0; day < 7; day++) {
       const currentDate = new Date(weekStart);
       currentDate.setDate(weekStart.getDate() + day);
-
-      // Saltar domingos (día de descanso)
-      if (currentDate.getDay() === 0) continue;
 
       colaboradores.forEach((user, index) => {
         let shiftConfig;

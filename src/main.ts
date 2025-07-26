@@ -39,6 +39,14 @@ async function bootstrap() {
   // Middlewares
   app.use(cookieParser());
   
+  // Middleware para loggear todas las peticiones
+  app.use((req, res, next) => {
+    console.log(`🌐 [Global] ${req.method} ${req.url}`);
+    console.log(`📋 [Global] Headers:`, req.headers);
+    console.log(`📦 [Global] Body:`, req.body);
+    next();
+  });
+  
   // Puerto de la aplicación
   const port = configService.get('PORT') || 3001;
   
