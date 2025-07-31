@@ -449,11 +449,13 @@ export class AuthService {
             phone: store.phone,
             description: store.description,
             images: store.images || [],
+            videos: store.videos || [],
             schedule: store.schedule,
             ownerId: savedUser.id
           };
 
           this.logger.log(`Creating store for user ${savedUser.email} with data:`, storeData);
+          this.logger.log(`Store videos:`, store.videos);
 
           const createdStore = await this.storeService.create(storeData);
           
@@ -461,6 +463,7 @@ export class AuthService {
           // a través del ownerId en la tabla stores
           
           this.logger.log(`✅ Store created successfully for user ${savedUser.email}: ${createdStore.name} (${createdStore.storeNumber})`);
+          this.logger.log(`✅ Store videos saved:`, createdStore.videos);
         } catch (storeError) {
           this.logger.error('❌ Error creating store for internal user:', storeError);
           this.logger.error('Store creation failed for user:', savedUser.email);
@@ -476,6 +479,7 @@ export class AuthService {
             phone: store.phone,
             schedule: store.schedule,
             images: store.images,
+            videos: store.videos,
             error: 'Failed to create store automatically. Please create manually.'
           };
           await this.userRepository.save(savedUser);

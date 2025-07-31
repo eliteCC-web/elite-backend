@@ -22,6 +22,10 @@ export class CreateStoreDto {
   @IsOptional()
   images?: string[];
 
+  @IsArray()
+  @IsOptional()
+  videos?: string[];
+
   @IsOptional()
   schedule?: any;
 

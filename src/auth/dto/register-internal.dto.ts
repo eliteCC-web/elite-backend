@@ -48,6 +48,10 @@ export class StoreDto {
   @IsArray()
   @IsString({ each: true })
   images: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  videos: string[];
 }
 
 export class RegisterInternalDto {

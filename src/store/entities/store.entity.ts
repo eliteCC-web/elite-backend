@@ -23,6 +23,9 @@ export class Store {
   images: string[];
 
   @Column({ type: 'jsonb', nullable: true })
+  videos: string[];
+
+  @Column({ type: 'jsonb', nullable: true })
   schedule: any;
 
   @Column({ nullable: true })
