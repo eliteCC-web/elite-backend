@@ -57,3 +57,33 @@ export class AssignRandomShiftsDto {
   @IsString()
   shiftPattern?: 'ROTATING' | 'FIXED' | 'CUSTOM';
 }
+
+export class BulkEquitativeAssignDto {
+  @IsNotEmpty()
+  @IsNumber({}, { each: true })
+  userIds: number[];
+
+  @IsNotEmpty()
+  @IsDateString()
+  startDate: string;
+
+  @IsNotEmpty()
+  @IsDateString()
+  endDate: string;
+
+  @IsNotEmpty()
+  @IsString()
+  startTime: string;
+
+  @IsNotEmpty()
+  @IsString()
+  endTime: string;
+
+  @IsOptional()
+  @IsString()
+  shiftType?: 'MORNING' | 'AFTERNOON' | 'NIGHT' | 'FULL_DAY';
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}

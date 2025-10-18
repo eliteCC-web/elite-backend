@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 import { Schedule } from './entities/schedule.entity';
 import { User } from '../user/entities/user.entity';
-import { CreateScheduleDto, BulkCreateScheduleDto, AssignRandomShiftsDto } from './dto/create-schedule.dto';
+import { CreateScheduleDto, BulkCreateScheduleDto, AssignRandomShiftsDto, BulkEquitativeAssignDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { ScheduleNotificationService } from './services/schedule-notification.service';
 
@@ -277,5 +277,119 @@ export class ScheduleService {
       relations: ['user'],
       order: { date: 'ASC', startTime: 'ASC' }
     });
+  }
+
+  /**
+   * Asignar turnos de manera equitativa y aleatoria
+   * Distribuye los turnos entre múltiples colaboradores en un rango de fechas
+   * de manera que cada uno reciba la misma cantidad de turnos pero en días aleatorios
+   */
+  async bulkEquitativeAssign(assignDto: BulkEquitativeAssignDto, adminId: number): Promise<Schedule[]> {
+    const { userIds, startDate, endDate, startTime, endTime, shiftType, notes } = assignDto;
+    
+    // Verificar que todos los usuarios existan y sean colaboradores
+    const users = await this.userRepository.find({
+      where: { id: In(userIds) },
+      relations: ['roles']
+    });
+
+    if (users.length !== userIds.length) {
+      throw new BadRequestException('Some users not found');
+    }
+
+    const colaboradores = users.filter(user => 
+      user.roles?.some(role => role.name === 'COLABORADOR')
+    );
+
+    if (colaboradores.length !== userIds.length) {
+      throw new BadRequestException('All users must be colaboradores');
+    }
+
+    // Generar array de fechas en el rango
+    const dates: Date[] = [];
+    const currentDate = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    
+    while (currentDate <= endDateObj) {
+      dates.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    console.log(`📅 Generando turnos para ${dates.length} días entre ${colaboradores.length} colaboradores`);
+
+    // Calcular cuántos turnos debe recibir cada colaborador
+    const totalDays = dates.length;
+    const totalUsers = colaboradores.length;
+    const turnosPerUser = Math.floor(totalDays / totalUsers);
+    const extraTurnos = totalDays % totalUsers; // Turnos sobrantes
+
+    console.log(`📊 Total días: ${totalDays}`);
+    console.log(`👥 Total colaboradores: ${totalUsers}`);
+    console.log(`🎯 Turnos por colaborador: ${turnosPerUser}`);
+    console.log(`➕ Turnos extra a distribuir: ${extraTurnos}`);
+
+    // Crear un array con todas las fechas disponibles
+    const availableDates = [...dates];
+    
+    // Mezclar aleatoriamente las fechas usando Fisher-Yates shuffle
+    for (let i = availableDates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availableDates[i], availableDates[j]] = [availableDates[j], availableDates[i]];
+    }
+
+    console.log(`🔀 Fechas mezcladas aleatoriamente`);
+
+    // Asignar turnos de manera equitativa
+    const schedules: CreateScheduleDto[] = [];
+    let dateIndex = 0;
+
+    // Asignar turnos base a cada colaborador
+    for (let userIndex = 0; userIndex < colaboradores.length; userIndex++) {
+      const user = colaboradores[userIndex];
+      // Algunos usuarios recibirán un turno extra
+      const turnosForThisUser = turnosPerUser + (userIndex < extraTurnos ? 1 : 0);
+      
+      console.log(`👤 Asignando ${turnosForThisUser} turnos a ${user.firstName} ${user.lastName}`);
+
+      for (let t = 0; t < turnosForThisUser; t++) {
+        if (dateIndex < availableDates.length) {
+          const assignedDate = availableDates[dateIndex];
+          schedules.push({
+            userId: user.id,
+            date: assignedDate.toISOString().split('T')[0],
+            startTime,
+            endTime,
+            shiftType: shiftType || 'FULL_DAY',
+            position: user.roles?.[0]?.name || 'COLABORADOR',
+            notes
+          });
+          dateIndex++;
+        }
+      }
+    }
+
+    console.log(`✅ Total de turnos generados: ${schedules.length}`);
+
+    // Crear todos los horarios
+    const createdSchedules = await this.bulkCreate({ 
+      weekStartDate: startDate, 
+      schedules 
+    });
+
+    console.log(`💾 Turnos guardados en base de datos: ${createdSchedules.length}`);
+
+    // Enviar notificaciones por email para cada turno creado
+    console.log(`📧 Iniciando envío de notificaciones...`);
+    for (const schedule of createdSchedules) {
+      try {
+        await this.notificationService.sendScheduleNotification(schedule.id);
+      } catch (error) {
+        console.error(`❌ Error sending notification for schedule ${schedule.id}:`, error);
+      }
+    }
+
+    console.log(`✨ Proceso de asignación masiva completado`);
+
+    return createdSchedules;
   }
 }

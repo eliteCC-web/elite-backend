@@ -1,7 +1,7 @@
 // src/schedule/schedule.controller.ts
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
-import { CreateScheduleDto, BulkCreateScheduleDto, AssignRandomShiftsDto } from './dto/create-schedule.dto';
+import { CreateScheduleDto, BulkCreateScheduleDto, AssignRandomShiftsDto, BulkEquitativeAssignDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -34,6 +34,17 @@ export class ScheduleController {
   @Roles('ADMIN')
   assignRandomShifts(@Body() assignDto: AssignRandomShiftsDto, @Request() req) {
     return this.scheduleService.assignRandomShifts(assignDto, req.user.id);
+  }
+
+  @Post('bulk-equitative-assign')
+  @Roles('ADMIN')
+  bulkEquitativeAssign(@Body() assignDto: BulkEquitativeAssignDto, @Request() req) {
+    console.log('🎯 [ScheduleController] POST /schedule/bulk-equitative-assign endpoint called!');
+    console.log('📋 [ScheduleController] Request body:', assignDto);
+    console.log('👥 [ScheduleController] User IDs:', assignDto.userIds);
+    console.log('📅 [ScheduleController] Date range:', assignDto.startDate, 'to', assignDto.endDate);
+    console.log('⏰ [ScheduleController] Time range:', assignDto.startTime, '-', assignDto.endTime);
+    return this.scheduleService.bulkEquitativeAssign(assignDto, req.user.id);
   }
 
   @Get()
